@@ -41,3 +41,79 @@ model RefreshToken {
   @@index([userId])
   @@index([familyId])
 }
+enum SeatType {
+  STANDARD
+  VIP
+}
+
+model Genre {
+  id     String       @id @default(uuid())
+  name   String       @unique
+  movies MovieGenre[]
+}
+
+model Movie {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  durationMin Int
+  posterUrl   String?
+  trailerUrl  String?
+  ageRating   String?
+  releaseDate DateTime?
+  genres      MovieGenre[]
+  sessions    Session[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([title])
+}
+
+model MovieGenre {
+  movieId String
+  genreId String
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, genreId])
+  @@index([genreId])
+}
+
+model Hall {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  rows        Int
+  seatsPerRow Int
+  seats       Seat[]
+  sessions    Session[]
+  createdAt   DateTime  @default(now())
+}
+
+model Seat {
+  id     String   @id @default(uuid())
+  hallId String
+  row    Int
+  number Int
+  type   SeatType @default(STANDARD)
+  hall   Hall     @relation(fields: [hallId], references: [id], onDelete: Cascade)
+
+  @@unique([hallId, row, number])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  movieId   String
+  hallId    String
+  startAt   DateTime
+  endAt     DateTime
+  price     Decimal  @db.Decimal(10, 2)
+  vipPrice  Decimal? @db.Decimal(10, 2)
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Restrict)
+  hall      Hall     @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startAt])
+  @@index([hallId, startAt])
+  @@index([movieId])
+}

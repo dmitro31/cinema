@@ -1,0 +1,1 @@
+export const SESSION_BUFFER_MIN = 15;
