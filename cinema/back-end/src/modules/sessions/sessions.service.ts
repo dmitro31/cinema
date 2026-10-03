@@ -91,6 +91,15 @@ export class SessionsService {
       throw new BadRequestException('Session must start in the future');
     }
 
+    const timeOrPlaceChanged =
+      (dto.movieId !== undefined && dto.movieId !== existing.movieId) ||
+      (dto.hallId !== undefined && dto.hallId !== existing.hallId) ||
+      (dto.startAt !== undefined && dto.startAt.getTime() !== existing.startAt.getTime());
+
+    if (timeOrPlaceChanged && (await this.hasActiveOrders(id))) {
+      throw new ConflictException('Session has active orders');
+    }
+
     const movieId = dto.movieId ?? existing.movieId;
     const hallId = dto.hallId ?? existing.hallId;
     const startAt = dto.startAt ?? existing.startAt;
@@ -116,12 +125,27 @@ export class SessionsService {
   }
 
   async remove(id: string) {
+    if (await this.hasActiveOrders(id)) {
+      throw new ConflictException('Session has active orders');
+    }
+
     try {
       await this.prisma.session.delete({ where: { id } });
     } catch (error) {
       if (hasPrismaCode(error, 'P2025')) throw new NotFoundException('Session not found');
+      if (hasPrismaCode(error, 'P2003')) throw new ConflictException('Session has order history');
       throw error;
     }
+  }
+
+  private async hasActiveOrders(sessionId: string) {
+    const count = await this.prisma.order.count({
+      where: {
+        sessionId,
+        OR: [{ status: 'PAID' }, { status: 'PENDING', expiresAt: { gt: new Date() } }],
+      },
+    });
+    return count > 0;
   }
 
   private computeEnd(startAt: Date, durationMin: number) {

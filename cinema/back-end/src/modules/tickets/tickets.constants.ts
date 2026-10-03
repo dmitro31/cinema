@@ -1,0 +1,1 @@
+export const ENTRY_OPENS_BEFORE_MIN = 60;

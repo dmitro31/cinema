@@ -18,6 +18,9 @@ const createPrismaMock = () => ({
     update: vi.fn().mockImplementation(async ({ data }) => ({ id: 'session-1', ...data })),
     delete: vi.fn().mockResolvedValue({}),
   },
+  order: {
+    count: vi.fn().mockResolvedValue(0),
+  },
 });
 
 describe('SessionsService', () => {
@@ -152,13 +155,62 @@ describe('SessionsService', () => {
       );
       expect(prisma.session.update).not.toHaveBeenCalled();
     });
+
+    it('rejects moving a session that has active orders', async () => {
+      prisma.session.findUnique.mockResolvedValue(existing());
+      prisma.order.count.mockResolvedValue(1);
+
+      await expect(
+        service.update('session-1', { startAt: new Date(Date.now() + 6 * HOUR) }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.session.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects changing the hall of a session that has active orders', async () => {
+      prisma.session.findUnique.mockResolvedValue(existing());
+      prisma.order.count.mockResolvedValue(2);
+
+      await expect(service.update('session-1', { hallId: 'hall-2' })).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(prisma.session.update).not.toHaveBeenCalled();
+    });
+
+    it('allows changing only the price even when there are active orders', async () => {
+      prisma.session.findUnique.mockResolvedValue(existing());
+      prisma.order.count.mockResolvedValue(1);
+
+      await service.update('session-1', { price: 200 });
+
+      expect(prisma.order.count).not.toHaveBeenCalled();
+      expect(prisma.session.update).toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {
+    it('rejects deleting a session that has active orders', async () => {
+      prisma.order.count.mockResolvedValue(1);
+
+      await expect(service.remove('session-1')).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.session.delete).not.toHaveBeenCalled();
+    });
+
+    it('maps a session with order history to 409', async () => {
+      prisma.session.delete.mockRejectedValue({ code: 'P2003' });
+
+      await expect(service.remove('session-1')).rejects.toBeInstanceOf(ConflictException);
+    });
+
     it('maps a missing session to 404', async () => {
       prisma.session.delete.mockRejectedValue({ code: 'P2025' });
 
       await expect(service.remove('session-1')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('deletes a session without orders', async () => {
+      await service.remove('session-1');
+
+      expect(prisma.session.delete).toHaveBeenCalledWith({ where: { id: 'session-1' } });
     });
   });
 });

@@ -22,8 +22,98 @@ model User {
   avatarUrl     String?
   role          Role           @default(USER)
   refreshTokens RefreshToken[]
+  orders        Order[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+}
+
+model Seat {
+  id         String      @id @default(uuid())
+  hallId     String
+  row        Int
+  number     Int
+  type       SeatType    @default(STANDARD)
+  hall       Hall        @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  tickets    Ticket[]
+
+  @@unique([hallId, row, number])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  movieId   String
+  hallId    String
+  startAt   DateTime
+  endAt     DateTime
+  price     Decimal  @db.Decimal(10, 2)
+  vipPrice  Decimal? @db.Decimal(10, 2)
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Restrict)
+  hall      Hall     @relation(fields: [hallId], references: [id], onDelete: Restrict)
+  orders    Order[]
+  tickets   Ticket[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startAt])
+  @@index([hallId, startAt])
+  @@index([movieId])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  userId          String
+  sessionId       String
+  status          OrderStatus @default(PENDING)
+  total           Decimal     @db.Decimal(10, 2)
+  expiresAt       DateTime
+  paidByPaymentId String?     @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  session         Session     @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  items           OrderItem[]
+  tickets         Ticket[]
+  payments        Payment[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+  @@index([sessionId])
+}
+
+model OrderItem {
+  id      String  @id @default(uuid())
+  orderId String
+  seatId  String
+  price   Decimal @db.Decimal(10, 2)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  seat    Seat    @relation(fields: [seatId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, seatId])
+}
+
+model Ticket {
+  id        String    @id @default(uuid())
+  orderId   String
+  sessionId String
+  seatId    String
+  price     Decimal   @db.Decimal(10, 2)
+  qrCode    String    @unique
+  usedAt    DateTime?
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  session   Session   @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  seat      Seat      @relation(fields: [seatId], references: [id], onDelete: Restrict)
+  createdAt DateTime  @default(now())
+
+  @@unique([sessionId, seatId])
+  @@index([orderId])
 }
 
 model RefreshToken {
@@ -89,31 +179,27 @@ model Hall {
   createdAt   DateTime  @default(now())
 }
 
-model Seat {
-  id     String   @id @default(uuid())
-  hallId String
-  row    Int
-  number Int
-  type   SeatType @default(STANDARD)
-  hall   Hall     @relation(fields: [hallId], references: [id], onDelete: Cascade)
-
-  @@unique([hallId, row, number])
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  REFUND_FAILED
 }
 
-model Session {
-  id        String   @id @default(uuid())
-  movieId   String
-  hallId    String
-  startAt   DateTime
-  endAt     DateTime
-  price     Decimal  @db.Decimal(10, 2)
-  vipPrice  Decimal? @db.Decimal(10, 2)
-  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Restrict)
-  hall      Hall     @relation(fields: [hallId], references: [id], onDelete: Restrict)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Payment {
+  id                String        @id @default(uuid())
+  orderId           String
+  provider          String        @default("LIQPAY")
+  status            PaymentStatus @default(PENDING)
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String
+  providerPaymentId String?
+  providerStatus    String?
+  failureReason     String?
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  @@index([startAt])
-  @@index([hallId, startAt])
-  @@index([movieId])
+  @@index([orderId, status])
 }
