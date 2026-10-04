@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { GenresModule } from './modules/genres/genres.module';
 import { HallsModule } from './modules/halls/halls.module';
+import { HealthModule } from './modules/health/health.module';
 import { MoviesModule } from './modules/movies/movies.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
@@ -33,6 +34,7 @@ import { UsersModule } from './modules/users/users.module';
     BookingModule,
     TicketsModule,
     PaymentsModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
