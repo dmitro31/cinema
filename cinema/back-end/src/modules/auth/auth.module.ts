@@ -1,4 +1,3 @@
-// src/modules/auth/auth.module.ts
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -7,6 +6,8 @@ import { AUTH_MAINTENANCE_QUEUE } from '../../common/constants/auth.constants';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { UsersModule } from '../users/users.module';
+import { AccountController } from './account.controller';
+import { AccountService } from './account.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthMaintenanceProcessor } from './maintenance/auth-maintenance.processor';
@@ -19,9 +20,10 @@ import { TokensService } from './service/tokens.service';
     JwtModule.register({}),
     BullModule.registerQueue({ name: AUTH_MAINTENANCE_QUEUE }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AccountController],
   providers: [
     AuthService,
+    AccountService,
     TokensService,
     AuthMaintenanceProcessor,
     AuthMaintenanceScheduler,

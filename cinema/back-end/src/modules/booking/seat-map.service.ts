@@ -11,6 +11,11 @@ export class SeatMapService {
     private redis: RedisService,
   ) {}
 
+  async assertSessionExists(sessionId: string) {
+    const count = await this.prisma.session.count({ where: { id: sessionId } });
+    if (count === 0) throw new NotFoundException('Session not found');
+  }
+
   async getSeatMap(sessionId: string) {
     const session = await this.prisma.session.findUnique({
       where: { id: sessionId },

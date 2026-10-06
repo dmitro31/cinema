@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { LIQPAY_API_URL, LIQPAY_CHECKOUT_URL, LIQPAY_VERSION } from './payments.constant'
+import { LIQPAY_API_URL, LIQPAY_CHECKOUT_URL, LIQPAY_VERSION } from './payments.constants';
 
 @Injectable()
 export class LiqPayService {
@@ -11,6 +11,7 @@ export class LiqPayService {
   private readonly frontUrl: string;
   readonly currency: string;
   readonly sandbox: boolean;
+  readonly mockRefunds: boolean;
 
   constructor(config: ConfigService) {
     this.publicKey = config.getOrThrow<string>('LIQPAY_PUBLIC_KEY');
@@ -20,6 +21,7 @@ export class LiqPayService {
     this.currency = config.get<string>('LIQPAY_CURRENCY') ?? 'UAH';
     const sandbox = config.get<boolean | string>('LIQPAY_SANDBOX');
     this.sandbox = sandbox === true || sandbox === 'true';
+    this.mockRefunds = config.get<string>('LIQPAY_REFUND_MODE') === 'mock';
   }
 
   encode(payload: object): string {
@@ -66,6 +68,8 @@ export class LiqPayService {
   }
 
   async refund(paymentId: string, amount: number): Promise<boolean> {
+    if (this.mockRefunds) return true;
+
     const data = this.encode({
       version: LIQPAY_VERSION,
       public_key: this.publicKey,

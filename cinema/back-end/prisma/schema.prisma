@@ -63,6 +63,8 @@ model Session {
 enum OrderStatus {
   PENDING
   PAID
+  REFUNDING
+  REFUNDED
   CANCELLED
   EXPIRED
 }

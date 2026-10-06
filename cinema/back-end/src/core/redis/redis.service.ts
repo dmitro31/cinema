@@ -28,25 +28,7 @@ export class RedisService implements OnModuleDestroy {
   readonly client: Redis;
 
   constructor(config: ConfigService) {
-    this.client = new Redis(config.getOrThrow<string>('REDIS_URL'), {
-      // 1. Обмежуємо кількість спроб для КЕШУ, щоб уникнути нескінченного спаму в консоль
-      maxRetriesPerRequest: 3, 
-      
-      // 2. Налаштовуємо розумну стратегію повторного підключення
-      retryStrategy(times) {
-        const delay = Math.min(times * 100, 2000);
-        return delay;
-      },
-      
-      // 3. Зменшуємо таймаут підключення, щоб завислі Windows-сокети швидше закривалися
-      connectTimeout: 10000,
-    });
-
-    // 4. ОБОВ'ЯЗКОВО відловлюємо евенти помилок, щоб вони не падали як Unhandled і не смітили в термінал
-    this.client.on('error', (error) => {
-      // Замість величезного трейсу помилки виводимо акуратне попередження в один рядок
-      console.warn(`[Redis Alert]: ${error.message}`);
-    });
+    this.client = new Redis(config.getOrThrow<string>('REDIS_URL'));
   }
 
   private holdKeys(sessionId: string, seatIds: string[]) {
@@ -61,13 +43,16 @@ export class RedisService implements OnModuleDestroy {
   ): Promise<boolean> {
     const keys = this.holdKeys(sessionId, seatIds);
     const result = await this.client.eval(HOLD_SCRIPT, keys.length, ...keys, ownerId, ttlSec);
-    return result === 1;
+    const held = result === 1;
+    if (held) await this.publishSeatsChanged(sessionId, seatIds);
+    return held;
   }
 
   async releaseSeats(sessionId: string, seatIds: string[], ownerId: string): Promise<void> {
     if (seatIds.length === 0) return;
     const keys = this.holdKeys(sessionId, seatIds);
     await this.client.eval(RELEASE_SCRIPT, keys.length, ...keys, ownerId);
+    await this.publishSeatsChanged(sessionId, seatIds);
   }
 
   async getHeldSeatIds(sessionId: string, seatIds: string[]): Promise<Set<string>> {
@@ -76,8 +61,20 @@ export class RedisService implements OnModuleDestroy {
     return new Set(seatIds.filter((_, index) => values[index] !== null));
   }
 
+  async publishSeatsChanged(sessionId: string, seatIds: string[]): Promise<void> {
+    if (seatIds.length === 0) return;
+    try {
+      await this.client.publish(`seats:${sessionId}`, JSON.stringify({ seatIds }));
+    } catch {
+      return;
+    }
+  }
+
+  createSubscriber(): Redis {
+    return this.client.duplicate();
+  }
+
   async onModuleDestroy() {
-    // Використовуємо disconnect() замість quit(), щоб моментально закрити з'єднання при перезавантаженні сервером watch-модуля
-    this.client.disconnect();
+    await this.client.quit();
   }
 }

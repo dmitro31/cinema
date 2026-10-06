@@ -1,8 +1,7 @@
-// src/modules/payments/liqpay.service.spec.ts
 import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LiqPayService } from './liqpay.service';
-import { LIQPAY_API_URL } from './payments.constant'
+import { LIQPAY_API_URL } from './payments.constants';
 
 const baseValues: Record<string, unknown> = {
   LIQPAY_PUBLIC_KEY: 'public-key',
@@ -163,6 +162,24 @@ describe('LiqPayService', () => {
       fetchMock.mockRejectedValue(new Error('network down'));
 
       expect(await service.refund('payment-1', 400)).toBe(false);
+    });
+
+    it('succeeds without calling LiqPay in mock refund mode', async () => {
+      const service = createService({ LIQPAY_REFUND_MODE: 'mock' });
+
+      expect(service.mockRefunds).toBe(true);
+      expect(await service.refund('payment-1', 400)).toBe(true);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('calls LiqPay in live refund mode', async () => {
+      const service = createService({ LIQPAY_REFUND_MODE: 'live' });
+      fetchMock.mockResolvedValue({ ok: true, json: async () => ({ result: 'ok' }) });
+
+      expect(service.mockRefunds).toBe(false);
+      await service.refund('payment-1', 400);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 });
