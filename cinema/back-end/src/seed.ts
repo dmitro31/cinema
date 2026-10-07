@@ -33,6 +33,7 @@ const MOVIES = [
     durationMin: 128,
     ageRating: '16+',
     genres: ['Трилер', 'Драма'],
+    posterUrl: "https://res.cloudinary.com/dpga0w2qm/image/upload/v1791370685/1nsrDzwckZWyhp7nlvJmB7iPvRb_i6v7xk.jpg"
   },
   {
     title: 'Орбіта',
@@ -40,6 +41,7 @@ const MOVIES = [
     durationMin: 152,
     ageRating: '12+',
     genres: ['Фантастика', 'Бойовик'],
+    posterUrl: "https://res.cloudinary.com/dpga0w2qm/image/upload/v1791370685/1nsrDzwckZWyhp7nlvJmB7iPvRb_i6v7xk.jpg"
   },
   {
     title: 'Країна лисиць',
@@ -47,6 +49,7 @@ const MOVIES = [
     durationMin: 96,
     ageRating: '0+',
     genres: ['Мультфільм', 'Комедія'],
+    posterUrl: "https://res.cloudinary.com/dpga0w2qm/image/upload/v1791370685/1nsrDzwckZWyhp7nlvJmB7iPvRb_i6v7xk.jpg"
   },
   {
     title: 'Нічне місто',
@@ -54,6 +57,7 @@ const MOVIES = [
     durationMin: 118,
     ageRating: '16+',
     genres: ['Бойовик', 'Трилер'],
+    posterUrl: "https://res.cloudinary.com/dpga0w2qm/image/upload/v1791370685/1nsrDzwckZWyhp7nlvJmB7iPvRb_i6v7xk.jpg"
   },
   {
     title: 'Сміх крізь сльози',
@@ -61,6 +65,7 @@ const MOVIES = [
     durationMin: 104,
     ageRating: '12+',
     genres: ['Комедія', 'Драма'],
+    posterUrl: "https://res.cloudinary.com/dpga0w2qm/image/upload/v1791370685/1nsrDzwckZWyhp7nlvJmB7iPvRb_i6v7xk.jpg"
   },
   {
     title: 'Тихий будинок',
@@ -68,6 +73,7 @@ const MOVIES = [
     durationMin: 109,
     ageRating: '18+',
     genres: ['Жахи', 'Трилер'],
+    posterUrl: "https://res.cloudinary.com/dpga0w2qm/image/upload/v1791370685/1nsrDzwckZWyhp7nlvJmB7iPvRb_i6v7xk.jpg"
   },
 ];
 
@@ -138,13 +144,15 @@ async function seedMovies(prisma: PrismaService, genreIds: Map<string, string>) 
     });
     if (exists) continue;
 
+    const posterUrl = movie.posterUrl || `https://placehold.co/400x600/png?text=${encodeURIComponent(movie.title)}`;
+
     await prisma.movie.create({
       data: {
         title: movie.title,
         description: movie.description,
         durationMin: movie.durationMin,
         ageRating: movie.ageRating,
-        posterUrl: `https://placehold.co/400x600/png?text=${encodeURIComponent(movie.title)}`,
+        posterUrl: posterUrl, 
         releaseDate: new Date(),
         genres: {
           create: movie.genres.map((name) => ({ genreId: genreIds.get(name) as string })),
@@ -160,6 +168,7 @@ async function seedMovies(prisma: PrismaService, genreIds: Map<string, string>) 
     orderBy: { title: 'asc' },
   });
 }
+
 
 async function seedSessions(
   prisma: PrismaService,

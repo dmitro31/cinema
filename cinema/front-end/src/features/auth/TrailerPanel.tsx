@@ -60,15 +60,6 @@ export function TrailerPanel() {
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0B0F] via-[#0B0B0F]/40 to-[#0B0B0F]/30" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0B0B0F]/60 via-transparent to-transparent" />
-
-      <div className="absolute left-7 top-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 text-xs font-medium text-[#F4F4F5] backdrop-blur">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F2B544] opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F2B544]" />
-        </span>
-        Скоро в кіно
-      </div>
-
       <div className="absolute inset-x-0 bottom-0 p-8">
         <p className="text-sm font-medium text-[#F2B544]">{trailer.meta}</p>
 

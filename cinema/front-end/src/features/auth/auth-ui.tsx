@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import Logo from '../header/Logo';
+import { Logo } from '../site/components/Logo';
 
 interface AuthCardProps {
   eyebrow: string;
