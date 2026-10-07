@@ -1,4 +1,3 @@
-// src/modules/sessions/sessions.service.ts
 import {
   BadRequestException,
   ConflictException,
@@ -7,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { hasPrismaCode } from '../../common/utils/prisma-errors';
 import { PrismaService } from '../../core/database/prisma.service';
+import { RedisService } from '../../core/redis/redis.service';
 import { HallsService } from '../halls/halls.service';
 import { MoviesService } from '../movies/movies.service';
 import { CreateSessionDto } from './dto/create-session.dto';
@@ -21,10 +21,13 @@ const sessionInclude = {
   hall: { select: { id: true, name: true } },
 } as const;
 
+type SeatStatus = 'FREE' | 'HELD' | 'SOLD';
+
 @Injectable()
 export class SessionsService {
   constructor(
     private prisma: PrismaService,
+    private redis: RedisService,
     private movies: MoviesService,
     private halls: HallsService,
   ) {}
@@ -57,6 +60,50 @@ export class SessionsService {
     });
     if (!session) throw new NotFoundException('Session not found');
     return session;
+  }
+
+  async getSeats(id: string) {
+    const session = await this.prisma.session.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        hallId: true,
+        hall: { select: { rows: true, seatsPerRow: true } },
+      },
+    });
+    if (!session) throw new NotFoundException('Session not found');
+
+    const [seats, tickets] = await Promise.all([
+      this.prisma.seat.findMany({
+        where: { hallId: session.hallId },
+        select: { id: true, row: true, number: true, type: true },
+        orderBy: [{ row: 'asc' }, { number: 'asc' }],
+      }),
+      this.prisma.ticket.findMany({
+        where: { sessionId: session.id },
+        select: { seatId: true },
+      }),
+    ]);
+
+    const sold = new Set(tickets.map((ticket) => ticket.seatId));
+    const held = await this.redis.getHeldSeatIds(
+      session.id,
+      seats.map((seat) => seat.id),
+    );
+
+    return {
+      sessionId: session.id,
+      rows: session.hall.rows,
+      seatsPerRow: session.hall.seatsPerRow,
+      seats: seats.map((seat) => {
+        const status: SeatStatus = sold.has(seat.id)
+          ? 'SOLD'
+          : held.has(seat.id)
+            ? 'HELD'
+            : 'FREE';
+        return { ...seat, status };
+      }),
+    };
   }
 
   async create(dto: CreateSessionDto) {

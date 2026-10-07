@@ -1,4 +1,3 @@
-// src/modules/sessions/sessions.controller.ts
 import {
   Body,
   Controller,

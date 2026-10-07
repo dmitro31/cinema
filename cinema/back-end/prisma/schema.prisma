@@ -133,6 +133,7 @@ model RefreshToken {
   @@index([userId])
   @@index([familyId])
 }
+
 enum SeatType {
   STANDARD
   VIP
@@ -150,6 +151,8 @@ model Movie {
   description String
   durationMin Int
   posterUrl   String?
+  director    String
+  cast        String
   trailerUrl  String?
   ageRating   String?
   releaseDate DateTime?
