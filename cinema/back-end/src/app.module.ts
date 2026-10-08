@@ -17,6 +17,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { UsersModule } from './modules/users/users.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { UsersModule } from './modules/users/users.module';
     AuthModule,
     GenresModule,
     MoviesModule,
+    AdminModule,
     HallsModule,
     SessionsModule,
     BookingModule,

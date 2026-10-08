@@ -19,8 +19,9 @@ export class LiqPayService {
     this.apiPublicUrl = config.getOrThrow<string>('API_PUBLIC_URL').replace(/\/+$/, '');
     this.frontUrl = config.getOrThrow<string>('FRONT_URL').replace(/\/+$/, '');
     this.currency = config.get<string>('LIQPAY_CURRENCY') ?? 'UAH';
-    const sandbox = config.get<boolean | string>('LIQPAY_SANDBOX');
-    this.sandbox = sandbox === true || sandbox === 'true';
+    
+    const sandboxRaw = config.get<string | boolean>('LIQPAY_SANDBOX');
+    this.sandbox = sandboxRaw === true || sandboxRaw === 'true' || sandboxRaw === '1';
     this.mockRefunds = config.get<string>('LIQPAY_REFUND_MODE') === 'mock';
   }
 
@@ -50,7 +51,7 @@ export class LiqPayService {
     amount: number;
     description: string;
   }) {
-    const data = this.encode({
+    const payload: Record<string, any> = {
       version: LIQPAY_VERSION,
       public_key: this.publicKey,
       action: 'pay',
@@ -61,8 +62,13 @@ export class LiqPayService {
       language: 'uk',
       result_url: `${this.frontUrl}/payment/result?orderId=${params.orderId}`,
       server_url: `${this.apiPublicUrl}/api/v1/payments/liqpay/callback`,
-      ...(this.sandbox ? { sandbox: 1 } : {}),
-    });
+    };
+
+    if (this.sandbox) {
+      payload.sandbox = 1;
+    }
+
+    const data = this.encode(payload);
 
     return { checkoutUrl: LIQPAY_CHECKOUT_URL, data, signature: this.sign(data) };
   }
@@ -70,20 +76,31 @@ export class LiqPayService {
   async refund(paymentId: string, amount: number): Promise<boolean> {
     if (this.mockRefunds) return true;
 
-    const data = this.encode({
+    const payload: Record<string, any> = {
       version: LIQPAY_VERSION,
       public_key: this.publicKey,
       action: 'refund',
       order_id: paymentId,
       amount,
-    });
+    };
+
+    if (this.sandbox) {
+      payload.sandbox = 1;
+    }
+
+    const data = this.encode(payload);
+    const signature = this.sign(data);
 
     try {
       const response = await fetch(LIQPAY_API_URL, {
         method: 'POST',
-        body: new URLSearchParams({ data, signature: this.sign(data) }),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ data, signature }).toString(),
         signal: AbortSignal.timeout(10_000),
       });
+
       if (!response.ok) return false;
 
       const result = (await response.json()) as { result?: string; status?: string };

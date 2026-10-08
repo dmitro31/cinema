@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { TRAILERS } from '@/lib/trailers';
+  
 
 const ROTATE_MS = 25_000;
 
