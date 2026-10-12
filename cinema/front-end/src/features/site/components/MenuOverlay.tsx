@@ -30,7 +30,8 @@ const CONTACTS = {
 
 const CINEMA_LINKS: MenuLink[] = [
   { href: '/#schedule', label: 'Зараз у кіно' },
-  { href: '/#soon', label: 'Скоро у кіно' },
+  { href: '/schedule', label: 'Найближчий сеанс' },
+  { href: '/soon', label: 'Скоро у кіно' },
 ];
 
 const HELP_LINKS: MenuLink[] = [
@@ -52,6 +53,9 @@ const reveal = (shown: boolean) =>
 const delay = (shown: boolean, index: number) => ({
   transitionDelay: shown ? `${120 + index * 90}ms` : '0ms',
 });
+
+const isActive = (href: string, pathname: string) =>
+  href === '/#schedule' ? pathname === '/' : href === pathname;
 
 function InstagramIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -227,9 +231,9 @@ export function MenuOverlay({ open, onClose, pathname }: MenuOverlayProps) {
         <div className="grid flex-1 content-start gap-12 py-12 md:grid-cols-3 md:py-20 lg:gap-16">
           <Column title="Кіно" shown={shown} index={0}>
             <ul className="mt-6 space-y-4">
-              {CINEMA_LINKS.map((item, index) => (
+              {CINEMA_LINKS.map((item) => (
                 <li key={item.href}>
-                  <NavLink item={item} active={pathname === '/' && index === 0} onClose={onClose} />
+                  <NavLink item={item} active={isActive(item.href, pathname)} onClose={onClose} />
                 </li>
               ))}
             </ul>
@@ -245,7 +249,7 @@ export function MenuOverlay({ open, onClose, pathname }: MenuOverlayProps) {
               <ul className="mt-6 space-y-4">
                 {accountLinks.map((item) => (
                   <li key={item.href}>
-                    <NavLink item={item} onClose={onClose} />
+                    <NavLink item={item} active={isActive(item.href, pathname)} onClose={onClose} />
                   </li>
                 ))}
                 {isAuth && (
