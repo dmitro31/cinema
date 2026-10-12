@@ -1,4 +1,3 @@
-// modules/auth/cookies.ts
 import type { FastifyReply } from 'fastify';
 import type { FastifyCookieOptions } from '@fastify/cookie';
 import {
@@ -6,10 +5,13 @@ import {
   REFRESH_COOKIE, REFRESH_TTL_SEC, SESSION_COOKIE,
 } from "../../../common/constants/auth.constants.js";
 
+// Перевіряємо, де саме запущено код
+const isProd = process.env.NODE_ENV === 'production';
+
 const base = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  secure: isProd, 
+  sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
 };
 
 type CookieReply = FastifyReply & {
@@ -26,6 +28,7 @@ export function setAuthCookies(res: FastifyReply, t: { accessToken: string; refr
 
 export function clearAuthCookies(res: FastifyReply) {
   const reply = res as CookieReply;
+  // Важливо передавати ті самі налаштування secure та sameSite при очищенні
   reply.clearCookie(ACCESS_COOKIE, { ...base, path: '/' });
   reply.clearCookie(REFRESH_COOKIE, { ...base, path: '/' });
   reply.clearCookie(SESSION_COOKIE, { ...base, path: '/' });
