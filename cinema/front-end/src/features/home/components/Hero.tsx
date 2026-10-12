@@ -38,7 +38,10 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
     if (count < 2 || paused) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const timer = window.setInterval(() => setIndex((value) => (value + 1) % count), ROTATE_MS);
+    const timer = window.setInterval(() => {
+      setIndex((value) => (value + 1) % count);
+    }, ROTATE_MS);
+
     return () => window.clearInterval(timer);
   }, [count, paused]);
 
@@ -51,7 +54,12 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
   if (!movie) return null;
 
   const hasTrailer = getYouTubeEmbedUrl(movie.trailerUrl) !== null;
-  const step = (delta: number) => setIndex((index + delta + count) % count);
+
+  const step = (delta: number) => {
+    if (count <= 1) return;
+    setIndex((prevIndex) => (prevIndex + delta + count) % count);
+  };
+
   const label = slot.day ? dayLabel(slot.day) : null;
 
   return (
@@ -66,8 +74,8 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
         <Backdrop key={item.id} movie={item} active={itemIndex === index % count} />
       ))}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/55 via-35% to-transparent" aria-hidden="true" />
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/80 to-transparent" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/55 via-35% to-transparent" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-black/80 to-transparent" aria-hidden="true" />
 
       {count > 1 && (
         <>
@@ -75,7 +83,7 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
             type="button"
             aria-label="Попередній фільм"
             onClick={() => step(-1)}
-            className="absolute left-3 top-1/2 hidden size-14 -translate-y-1/2 items-center justify-center text-[#D9AE4E] outline-none transition hover:scale-110 focus-visible:ring-2 focus-visible:ring-[#D9AE4E] sm:flex lg:left-10"
+            className="absolute left-3 top-1/2 z-30 hidden size-14 -translate-y-1/2 items-center justify-center text-[#D9AE4E] outline-none transition hover:scale-110 focus-visible:ring-2 focus-visible:ring-[#D9AE4E] sm:flex lg:left-10"
           >
             <svg viewBox="0 0 24 48" width="22" height="44" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <path d="M18 4L6 24l12 20" />
@@ -85,7 +93,7 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
             type="button"
             aria-label="Наступний фільм"
             onClick={() => step(1)}
-            className="absolute right-3 top-1/2 hidden size-14 -translate-y-1/2 items-center justify-center text-[#D9AE4E] outline-none transition hover:scale-110 focus-visible:ring-2 focus-visible:ring-[#D9AE4E] sm:flex lg:right-10"
+            className="absolute right-3 top-1/2 z-30 hidden size-14 -translate-y-1/2 items-center justify-center text-[#D9AE4E] outline-none transition hover:scale-110 focus-visible:ring-2 focus-visible:ring-[#D9AE4E] sm:flex lg:right-10"
           >
             <svg viewBox="0 0 24 48" width="22" height="44" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <path d="M6 4l12 20L6 44" />
@@ -94,7 +102,7 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
         </>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-4 pb-24 text-center sm:pb-20">
+      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-4 pb-24 text-center sm:pb-20">
         <h1 className="max-w-4xl text-balance text-3xl font-bold uppercase leading-tight tracking-wide text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)] sm:text-5xl lg:text-6xl">
           {movie.title}
         </h1>
@@ -133,7 +141,7 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
         <button
           type="button"
           onClick={() => onTrailer(movie)}
-          className={`${cornerLink} absolute bottom-10 left-10 hidden flex-col md:flex lg:left-24`}
+          className={`${cornerLink} absolute bottom-10 left-10 z-30 hidden flex-col md:flex lg:left-24`}
         >
           <span className="flex size-12 items-center justify-center rounded-full border border-current">
             <PlayIcon width={16} height={16} />
@@ -144,7 +152,7 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
 
       <Link
         href={`/movies/${movie.id}`}
-        className={`${cornerLink} absolute bottom-10 right-10 hidden flex-col md:flex lg:right-24`}
+        className={`${cornerLink} absolute bottom-10 right-10 z-30 hidden flex-col md:flex lg:right-24`}
       >
         <span className="flex size-12 items-center justify-center rounded-full border border-current text-lg font-semibold normal-case">
           i
@@ -153,7 +161,7 @@ export function Hero({ movies, sessions, onTrailer, trailerOpen }: HeroProps) {
       </Link>
 
       {count > 1 && (
-        <div className="absolute inset-x-0 bottom-6 flex items-center justify-center gap-3" role="tablist" aria-label="Слайди">
+        <div className="absolute inset-x-0 bottom-6 z-30 flex items-center justify-center gap-3" role="tablist" aria-label="Слайди">
           {featured.map((item, itemIndex) => (
             <button
               key={item.id}

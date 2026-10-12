@@ -4,6 +4,6 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class ListOrdersDto extends PaginationDto {
   @IsOptional()
-  @IsIn(['PENDING', 'PAID', 'CANCELLED', 'EXPIRED'])
+  @IsIn(['PENDING', 'PAID', 'CANCELLED', 'EXPIRED' , 'REFUNDED'])
   status?: OrderStatus;
 }

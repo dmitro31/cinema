@@ -118,7 +118,7 @@ export function MovieView({ id }: { id: string }) {
 
               <MovieMeta movie={movie} badge className="mt-5" />
 
-              <dl className="mt-8 grid max-w-xl grid-cols-[auto_1fr] gap-x-8 gap-y-3 text-sm">
+              <dl className="mt-8 grid max-w-xl grid-cols-[120px_1fr] gap-x-8 gap-y-3 text-sm sm:grid-cols-[auto_1fr]">
                 {movie.releaseDate && (
                   <>
                     <dt className="uppercase tracking-[0.18em] text-[#8C8C8C]">Прем'єра</dt>
@@ -129,6 +129,18 @@ export function MovieView({ id }: { id: string }) {
                   <>
                     <dt className="uppercase tracking-[0.18em] text-[#8C8C8C]">Жанр</dt>
                     <dd>{genres}</dd>
+                  </>
+                )}
+                {movie.director && (
+                  <>
+                    <dt className="uppercase tracking-[0.18em] text-[#8C8C8C]">Режисер</dt>
+                    <dd>{movie.director}</dd>
+                  </>
+                )}
+                {movie.cast && (
+                  <>
+                    <dt className="uppercase tracking-[0.18em] text-[#8C8C8C]">У ролях</dt>
+                    <dd className="text-balance text-[#CFCFCF]">{movie.cast}</dd>
                   </>
                 )}
               </dl>

@@ -19,7 +19,7 @@ export class LiqPayService {
     this.apiPublicUrl = config.getOrThrow<string>('API_PUBLIC_URL').replace(/\/+$/, '');
     this.frontUrl = config.getOrThrow<string>('FRONT_URL').replace(/\/+$/, '');
     this.currency = config.get<string>('LIQPAY_CURRENCY') ?? 'UAH';
-    
+
     const sandboxRaw = config.get<string | boolean>('LIQPAY_SANDBOX');
     this.sandbox = sandboxRaw === true || sandboxRaw === 'true' || sandboxRaw === '1';
     this.mockRefunds = config.get<string>('LIQPAY_REFUND_MODE') === 'mock';
@@ -67,6 +67,9 @@ export class LiqPayService {
     if (this.sandbox) {
       payload.sandbox = 1;
     }
+
+    console.log("LIQPAY PAYLOAD:", JSON.stringify(payload));
+    console.log("USING PRIVATE KEY:", `[${this.privateKey}]`);
 
     const data = this.encode(payload);
 

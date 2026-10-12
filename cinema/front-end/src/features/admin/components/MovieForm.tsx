@@ -79,6 +79,26 @@ export function MovieForm({
         />
       </Field>
 
+      {/* Нове поле: Режисер */}
+      <Field label="Режисер" htmlFor="movie-director" error={errors.director?.message}>
+        <TextInput
+          id="movie-director"
+          placeholder="Крістофер Нолан"
+          error={!!errors.director}
+          {...register('director')}
+        />
+      </Field>
+
+      {/* Нове поле: Акторський склад */}
+      <Field label="Актори" htmlFor="movie-cast" error={errors.cast?.message}>
+        <TextArea
+          id="movie-cast"
+          placeholder="Кілліан Мерфі, Емілі Блант, Метт Деймон..."
+          error={!!errors.cast}
+          {...register('cast')}
+        />
+      </Field>
+
       <div className="grid gap-5 sm:grid-cols-3">
         <Field
           label="Тривалість, хв"

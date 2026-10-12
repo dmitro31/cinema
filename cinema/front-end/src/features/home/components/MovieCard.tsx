@@ -30,16 +30,32 @@ export function MovieCard({ movie, next }: MovieCardProps) {
 
         {movie.ageRating && (
           <span className="absolute left-3 top-3 rounded-md bg-black/70 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur">
-            {movie.ageRating}
+            {movie.ageRating}+
           </span>
         )}
       </div>
 
       <div className="mt-3 space-y-1 px-0.5">
-        <h3 className="line-clamp-1 text-base font-semibold text-[#F4F4F5]">{movie.title}</h3>
+        <h3 className="line-clamp-1 text-base font-semibold text-[#F4F4F5] group-hover:text-[#F2B544] transition-colors">
+          {movie.title}
+        </h3>
+        
+        {/* Додано відображення режисера, якщо він є, інакше виводяться жанри */}
         <p className="line-clamp-1 text-sm text-[#6F6F7C]">
-          {[genres, formatDuration(movie.durationMin)].filter(Boolean).join(' · ')}
+          {movie.director ? (
+            `Реж: ${movie.director}`
+          ) : (
+            [genres, formatDuration(movie.durationMin)].filter(Boolean).join(' · ')
+          )}
         </p>
+
+        {/* Додатковий рядок для тривалості, якщо виводиться режисер */}
+        {movie.director && (
+          <p className="line-clamp-1 text-xs text-[#52525B]">
+            {[genres, formatDuration(movie.durationMin)].filter(Boolean).join(' · ')}
+          </p>
+        )}
+
         {next && (
           <p className="line-clamp-1 pt-0.5 text-sm font-medium text-[#F2B544]">
             {sessionMoment(next.startAt)}

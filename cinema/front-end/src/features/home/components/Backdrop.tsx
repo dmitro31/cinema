@@ -15,7 +15,9 @@ export function Backdrop({ movie, active }: { movie: Movie; active: boolean }) {
   return (
     <div
       aria-hidden="true"
-      className={`absolute inset-0 transition-opacity duration-700 ${active ? 'opacity-100' : 'opacity-0'}`}
+      className={`pointer-events-none absolute inset-0 transition-opacity duration-700 ${
+        active ? 'opacity-100' : 'opacity-0'
+      }`}
     >
       {thumbnail && !thumbnailFailed ? (
         <img

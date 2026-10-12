@@ -57,6 +57,8 @@ export const movieSchema = z.object({
   description: z.string().trim().min(1, 'Введіть опис'),
   durationMin: positiveInt('Тривалість'),
   ageRating: z.string().trim(),
+  director: z.string().trim(),
+  cast:  z.string,
   releaseDate: z.string(),
   posterUrl: optionalUrl,
   trailerUrl: optionalUrl,

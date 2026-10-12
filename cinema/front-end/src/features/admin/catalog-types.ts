@@ -20,6 +20,8 @@ export interface Movie {
   title: string;
   description: string;
   durationMin: number;
+  director: string;
+  cast: string
   posterUrl: string | null;
   trailerUrl: string | null;
   ageRating: string | null;

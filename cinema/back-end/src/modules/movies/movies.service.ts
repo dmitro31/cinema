@@ -15,6 +15,8 @@ type MovieRecord = {
   title: string;
   description: string;
   durationMin: number;
+  director: string | null; // 🔥 ВИПРАВЛЕНО: додано | null відповідно до вашої схеми
+  cast: string | null;     // 🔥 ВИПРАВЛЕНО: додано | null відповідно до вашої схеми
   posterUrl: string | null;
   trailerUrl: string | null;
   ageRating: string | null;
@@ -54,13 +56,13 @@ export class MoviesService {
       this.prisma.movie.count({ where }),
     ]);
 
-    return { items: items.map(toMovie), total, page, limit };
+    return { items: items.map((item) => toMovie(item as unknown as MovieRecord)), total, page, limit };
   }
 
   async findOne(id: string) {
     const movie = await this.prisma.movie.findUnique({ where: { id }, include: movieInclude });
     if (!movie) throw new NotFoundException('Movie not found');
-    return toMovie(movie);
+    return toMovie(movie as unknown as MovieRecord);
   }
 
   async getDuration(id: string) {
@@ -81,6 +83,8 @@ export class MoviesService {
         title: dto.title,
         description: dto.description,
         durationMin: dto.durationMin,
+        director: dto.director ?? null, // 🔥 Захист від undefined
+        cast: dto.cast ?? null,         // 🔥 Захист від undefined
         posterUrl: dto.posterUrl,
         trailerUrl: dto.trailerUrl,
         ageRating: dto.ageRating,
@@ -90,7 +94,7 @@ export class MoviesService {
       include: movieInclude,
     });
 
-    return toMovie(movie);
+    return toMovie(movie as unknown as MovieRecord);
   }
 
   async update(id: string, dto: UpdateMovieDto) {
@@ -112,6 +116,8 @@ export class MoviesService {
           title: dto.title ?? undefined,
           description: dto.description ?? undefined,
           durationMin: dto.durationMin ?? undefined,
+          director: dto.director === undefined ? undefined : dto.director, // 🔥 Безпечне оновлення
+          cast: dto.cast === undefined ? undefined : dto.cast,             // 🔥 Безпечне оновлення
           posterUrl: dto.posterUrl,
           trailerUrl: dto.trailerUrl,
           ageRating: dto.ageRating,
@@ -122,7 +128,7 @@ export class MoviesService {
         },
         include: movieInclude,
       });
-      return toMovie(movie);
+      return toMovie(movie as unknown as MovieRecord);
     } catch (error) {
       if (hasPrismaCode(error, 'P2025')) throw new NotFoundException('Movie not found');
       throw error;

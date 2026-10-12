@@ -38,6 +38,18 @@ export class CreateMovieDto {
   @IsUrl()
   posterUrl?: string;
 
+  @Transform(trim) 
+  @IsString()
+  @MinLength(2)   
+  @MaxLength(150)
+  director!: string;
+
+  @Transform(trim) 
+  @IsString()
+  @MinLength(3)   
+  @MaxLength(2000)
+  cast!: string;
+
   @IsOptional()
   @IsUrl()
   trailerUrl?: string;

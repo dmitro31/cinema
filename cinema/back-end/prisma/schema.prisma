@@ -151,8 +151,8 @@ model Movie {
   description String
   durationMin Int
   posterUrl   String?
-  director    String
-  cast        String
+  director    String?
+  cast        String?
   trailerUrl  String?
   ageRating   String?
   releaseDate DateTime?

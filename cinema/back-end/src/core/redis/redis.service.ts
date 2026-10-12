@@ -28,7 +28,35 @@ export class RedisService implements OnModuleDestroy {
   readonly client: Redis;
 
   constructor(config: ConfigService) {
-    this.client = new Redis(config.getOrThrow<string>('REDIS_URL'));
+    // 🔥 ВИПРАВЛЕНО: Змінено на null, щоб захистити BullMQ та підписки від крешу при ECONNRESET
+    this.client = new Redis(config.getOrThrow<string>('REDIS_URL'), {
+      maxRetriesPerRequest: null, 
+      retryStrategy(times) {
+        return Math.min(times * 100, 3000);
+      },
+      connectTimeout: 10000,
+      enableReadyCheck: true,
+    });
+
+    this.client.on('error', (error: Error) => {
+      console.error('[RedisService] Redis connection error:', error.message);
+    });
+
+    this.client.on('connect', () => {
+      console.log('[RedisService] Connected to Redis');
+    });
+
+    this.client.on('ready', () => {
+      console.log('[RedisService] Redis is ready');
+    });
+
+    this.client.on('close', () => {
+      console.warn('[RedisService] Redis connection closed');
+    });
+
+    this.client.on('reconnecting', (delay: number) => {
+      console.warn(`[RedisService] Reconnecting in ${delay}ms`);
+    });
   }
 
   private holdKeys(sessionId: string, seatIds: string[]) {
@@ -70,8 +98,11 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
+  // 🔥 ВИПРАВЛЕНО: Передаємо параметри захисту для дубльованого клієнта підписок
   createSubscriber(): Redis {
-    return this.client.duplicate();
+    return this.client.duplicate({
+      maxRetriesPerRequest: null,
+    });
   }
 
   async onModuleDestroy() {
