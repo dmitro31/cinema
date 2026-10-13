@@ -1,12 +1,12 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+// modules/payments/payments.controller.ts
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UsePipes } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
-import type { JwtPayload } from '../../common/types/fastify';
-import { CreateCheckoutDto } from './dto/create-checkout.dto';
-import { LiqPayCallbackDto } from './dto/liqpay-callback.dto';
-import { PaymentsService } from './payments.service';
-import { RefundsService } from './refunds.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { Public } from '../../common/decorators/public.decorator.js';
+import type { JwtPayload } from '../../common/types/fastify.js';
+import { CreateCheckoutDto } from './dto/create-checkout.dto.js';
+import { PaymentsService } from './payments.service.js';
+import { RefundsService } from './refunds.service.js';
 
 @Controller('payments')
 export class PaymentsController {
@@ -37,7 +37,11 @@ export class PaymentsController {
   @SkipThrottle()
   @Post('liqpay/callback')
   @HttpCode(200)
-  callback(@Body() dto: LiqPayCallbackDto) {
-    return this.payments.handleCallback(dto.data, dto.signature);
+
+  callback(@Body() body: Record<string, any>) {
+    const data = body?.data;
+    const signature = body?.signature;
+
+    return this.payments.handleCallback(data, signature);
   }
 }
