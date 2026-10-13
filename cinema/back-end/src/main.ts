@@ -39,22 +39,24 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // 🔥 ВИПРАВЛЕНО: Додано ПОРТ ВІТЕ (5173) у список дозволених origin для CORS
+  // 🔥 ВИПРАВЛЕНО CORS: додано всі варіації вашого Vercel домену для надійного проходження валідації
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [
-        'http://localhost:3000',               // Next.js локально
-        'http://localhost:5173',               // Vite локально (панель /admin)
-        'https://vercel.app' // Продакшен
+        'http://localhost:3000',                  // Next.js локально
+        'http://localhost:5173',                  // Vite локально
+        'https://vercel.app',   // Варіант з дефісами
+        'https://cinema_8595_delta.vercel.app',   // Варіант з підкресленнями (як у вікні браузера)
       ];
       
+      // Додатково дозволяємо будь-які прев'ю-домени від vercel через регулярний вираз
       if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app\$/.test(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'), false);
+        callback(new Error(`Not allowed by CORS: ${origin}`), false);
       }
     },
-    credentials: true, // Дозволяє приймати куки авторизації
+    credentials: true, // Дозволяє браузеру зберігати та слати куки авторизації
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   });
