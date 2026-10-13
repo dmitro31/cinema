@@ -23,7 +23,14 @@ async function bootstrap() {
   
   const config = app.get(ConfigService);
 
-  await app.register(fastifyHelmet);
+  // 🔥 ВИПРАВЛЕНО: Дозволяємо вікнам Google OAuth взаємодіяти з додатком через postMessage
+  await app.register(fastifyHelmet, {
+    contentSecurityPolicy: false, // Запобігає блокуванню зовнішніх скриптів Google
+    crossOriginOpenerPolicy: {
+      policy: 'same-origin-allow-popups', 
+    },
+  });
+  
   await app.register(fastifyFormbody);
   
   await app.register(fastifyCookie, {
@@ -32,7 +39,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // 🔥 ВИПРАВЛЕНО: Додано localhost до CORS та виправлено перевірку origin
+  // Додано localhost до CORS та виправлено перевірку origin
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [
