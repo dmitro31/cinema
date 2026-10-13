@@ -13,6 +13,17 @@ enum Role {
   ADMIN
 }
 
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  GITHUB
+}
+
+enum OAuthProvider {
+  GOOGLE
+  GITHUB
+}
+
 model User {
   id            String         @id @default(uuid())
   email         String         @unique
@@ -21,10 +32,34 @@ model User {
   googleId      String?        @unique
   avatarUrl     String?
   role          Role           @default(USER)
+  provider    AuthProvider @default(LOCAL)
+  oauthAccounts OAuthAccount[]
   refreshTokens RefreshToken[]
   orders        Order[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+}
+
+model OAuthAccount {
+  id String @id @default(uuid())
+
+  provider OAuthProvider
+
+  providerId String
+
+  email String?
+
+  accessToken String?
+  refreshToken String?
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([provider, providerId])
+  @@index([userId])
 }
 
 model Seat {

@@ -8,6 +8,7 @@ const schema = z
     REDIS_URL: z.string().min(1),
     JWT_ACCESS_SECRET: z.string().min(32),
     GOOGLE_CLIENT_ID: z.string().min(1),
+    GOOGLE_CLIENT_SECRET: z.string().min(1), // Додано секретний ключ для роботи з Google API
     FRONT_URL: z.string().url(),
     API_PUBLIC_URL: z.string().url(),
     LIQPAY_PUBLIC_KEY: z.string().min(1),

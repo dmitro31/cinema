@@ -39,7 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = await authApi.fetchMe();
       setUser(currentUser);
     } catch {
-      setUser(null);
+      // Якщо звичайний fetchMe впав, пробуємо тихо оновити токени
+      try {
+        await authApi.refresh();
+        const currentUser = await authApi.fetchMe();
+        setUser(currentUser);
+      } catch {
+        setUser(null);
+      }
     }
   };
 
@@ -48,13 +55,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function initAuth() {
       try {
+        // 1. Спочатку робимо запит за даними поточного користувача
         const currentUser = await authApi.fetchMe();
         if (!cancelled) {
           setUser(currentUser);
         }
       } catch {
-        if (!cancelled) {
-          setUser(null);
+        // 2. Якщо Access Token прострочений (401), пробуємо викликати refresh через Http-Only Cookies
+        try {
+          await authApi.refresh();
+          // 3. Якщо refresh успішний, робимо повторний запит за профілем
+          const currentUser = await authApi.fetchMe();
+          if (!cancelled) {
+            setUser(currentUser);
+          }
+        } catch {
+          // Якщо і refresh впав (наприклад сесія повністю застаріла) — розлогінюємо
+          if (!cancelled) {
+            setUser(null);
+          }
         }
       } finally {
         if (!cancelled) {

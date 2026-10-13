@@ -11,19 +11,19 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import type { User } from '../../generated/prisma/client';
-import { REFRESH_COOKIE } from '../../common/constants/auth.constants';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
-import type { JwtPayload } from '../../common/types/fastify';
+import type { User } from '../../generated/prisma/client.js';
+import { REFRESH_COOKIE } from '../../common/constants/auth.constants.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { Public } from '../../common/decorators/public.decorator.js';
+import type { JwtPayload } from '../../common/types/fastify.js';
 
-import { UsersService } from '../users/users.service';
-import { AuthService } from './auth.service';
-import { GoogleLoginDto } from './dto/google-login.dto';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { TokensService } from './service/tokens.service';
-import { clearAuthCookies, setAuthCookies } from './service/cookies';
+import { UsersService } from '../users/users.service.js';
+import { AuthService } from './auth.service.js';
+import { GoogleLoginDto } from './dto/google-login.dto.js';
+import { LoginDto } from './dto/login.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
+import { TokensService } from './service/tokens.service.js';
+import { clearAuthCookies, setAuthCookies } from './service/cookies.js';
 
 const publicUser = (user: User) => ({
   id: user.id,
@@ -72,6 +72,7 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
+    // ВИПРАВЛЕНО: Для звичайного входу викликаємо стандартний метод login()
     const { user, ...tokens } = await this.auth.login(dto, metaOf(req));
 
     setAuthCookies(res, tokens);
@@ -90,8 +91,44 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const { user, ...tokens } = await this.auth.loginWithGoogle(
-      dto.idToken,
+    // ВИПРАВЛЕНО: Для Google-авторизації через idToken викликаємо відповідний метод,
+    // який всередині AuthService верифікує токен через google-auth-library
+    const { user, ...tokens } = await this.auth.googleLogin(
+      dto as unknown as Parameters<AuthService['googleLogin']>[0],
+      metaOf(req),
+    );
+
+    setAuthCookies(res, tokens);
+
+    return {
+      user: publicUser(user),
+    };
+  }
+
+  @Public()
+  @Get('google/callback')
+  @HttpCode(200)
+  async googleCallback(
+    @Req() req: FastifyRequest & {
+      user?: {
+        googleId: string;
+        email: string;
+        name: string;
+        avatarUrl?: string;
+      };
+    },
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const profile = req.user;
+
+    if (!profile?.googleId || !profile.email) {
+      throw new UnauthorizedException('Google authentication failed');
+    }
+
+    // Тут передається розпарсений об'єкт профілю з Passport.js стратегії.
+    // Якщо ваш метод googleLogin очікує саме такий об'єкт, то все працюватиме.
+    const { user, ...tokens } = await this.auth.googleLogin(
+      profile,
       metaOf(req),
     );
 
