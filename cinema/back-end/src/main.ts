@@ -23,9 +23,9 @@ async function bootstrap() {
   
   const config = app.get(ConfigService);
 
-  // 🔥 ВИПРАВЛЕНО: Дозволяємо вікнам Google OAuth взаємодіяти з додатком через postMessage
+  // Дозволяємо вікнам Google OAuth взаємодіяти з додатком через postMessage
   await app.register(fastifyHelmet, {
-    contentSecurityPolicy: false, // Запобігає блокуванню зовнішніх скриптів Google
+    contentSecurityPolicy: false,
     crossOriginOpenerPolicy: {
       policy: 'same-origin-allow-popups', 
     },
@@ -39,12 +39,13 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // Додано localhost до CORS та виправлено перевірку origin
+  // 🔥 ВИПРАВЛЕНО: Додано ПОРТ ВІТЕ (5173) у список дозволених origin для CORS
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [
-        'http://localhost:3000',
-        'https://cinema-8595-delta.vercel.app'
+        'http://localhost:3000',               // Next.js локально
+        'http://localhost:5173',               // Vite локально (панель /admin)
+        'https://vercel.app' // Продакшен
       ];
       
       if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app\$/.test(origin)) {
@@ -53,7 +54,7 @@ async function bootstrap() {
         callback(new Error('Not allowed by CORS'), false);
       }
     },
-    credentials: true,
+    credentials: true, // Дозволяє приймати куки авторизації
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   });

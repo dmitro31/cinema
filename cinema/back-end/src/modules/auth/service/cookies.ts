@@ -15,11 +15,11 @@ type CookieSerializeOptions = {
   maxAge?: number;
 };
 
-// 🔥 Динамічна конфігурація: локально використовуємо lax/http, на продакшені — none/https
+// 🔥 Надійна конфігурація для локальних тестів між різними портами та для деплою
 const base: CookieSerializeOptions = {
   httpOnly: true,
-  secure: isProd, // true на Render.com (HTTPS), false для локального localhost (HTTP)
-  sameSite: isProd ? 'none' : 'lax', // none дозволяє крос-доменні запити Vercel <-> Render
+  secure: isProd, // true на Render (HTTPS), false для localhost (HTTP)
+  sameSite: isProd ? 'none' : 'lax', // lax дозволяє обмін куками між різними портами localhost
   path: '/',
 };
 
@@ -37,7 +37,6 @@ export function setAuthCookies(res: FastifyReply, t: { accessToken: string; refr
 
 export function clearAuthCookies(res: FastifyReply) {
   const reply = res as CookieReply;
-  // Передаємо налаштування base під час очищення, щоб браузер знав, яку саме куку видалити
   reply.clearCookie(ACCESS_COOKIE, base);
   reply.clearCookie(REFRESH_COOKIE, base);
   reply.clearCookie(SESSION_COOKIE, base);
