@@ -1,3 +1,4 @@
+// src/modules/payments/liqpay.service.ts
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -16,7 +17,15 @@ export class LiqPayService {
   constructor(config: ConfigService) {
     this.publicKey = config.getOrThrow<string>('LIQPAY_PUBLIC_KEY');
     this.privateKey = config.getOrThrow<string>('LIQPAY_PRIVATE_KEY');
-    this.apiPublicUrl = config.getOrThrow<string>('API_PUBLIC_URL').replace(/\/+\$/, '');
+    
+    const rawApiUrl = config.getOrThrow<string>('API_PUBLIC_URL');
+    const cleanedApiUrl = rawApiUrl.replace(/\/+\$/, '');
+    
+    this.apiPublicUrl = cleanedApiUrl.includes('localhost') && process.env.NODE_ENV === 'production'
+      ? 'https://onrender.com'
+      : cleanedApiUrl;
+
+    // 🔥 ВИПРАВЛЕНО: Безпечно очищаємо FRONT_URL від кінцевих слешів, щоб не було подвійних косих рисок
     this.frontUrl = config.getOrThrow<string>('FRONT_URL').replace(/\/+\$/, '');
     this.currency = config.get<string>('LIQPAY_CURRENCY') ?? 'UAH';
 
@@ -60,8 +69,8 @@ export class LiqPayService {
       description: params.description,
       order_id: params.paymentId,
       language: 'uk',
-      result_url: `${this.frontUrl}/payment/result?orderId=${params.orderId}`,
-      // 🔥 ВИПРАВЛЕНО: Додано обов'язковий глобальний префікс /api/v1 для Fastify路由
+      // 🔥 ВИПРАВЛЕНО: Перенаправляємо користувача прямо на його сторінку замовлення в особистому кабінеті
+      result_url: `${this.frontUrl}/orders/${params.orderId}`,
       server_url: `${this.apiPublicUrl}/payments/liqpay/callback`,
     };
 

@@ -13,7 +13,7 @@ export class PaymentsController {
   constructor(
     private payments: PaymentsService,
     private refunds: RefundsService,
-  ) {}
+  ) { }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('checkout')
@@ -37,11 +37,13 @@ export class PaymentsController {
   @SkipThrottle()
   @Post('liqpay/callback')
   @HttpCode(200)
-
-  callback(@Body() body: Record<string, any>) {
+  async callback(@Body() body: Record<string, any>) {
     const data = body?.data;
     const signature = body?.signature;
 
-    return this.payments.handleCallback(data, signature);
+    await this.payments.handleCallback(data, signature);
+
+    // 🔥 КРИТИЧНО ВАЖЛИВО: Повертаємо порожній рядок. LiqPay не любить JSON відповіді на callback
+    return '';
   }
 }
