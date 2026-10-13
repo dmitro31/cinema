@@ -1,6 +1,5 @@
 // modules/auth/service/cookies.ts
 import type { FastifyReply } from 'fastify';
-import type { FastifyCookieOptions } from '@fastify/cookie';
 import {
   ACCESS_COOKIE, ACCESS_TTL_SEC,
   REFRESH_COOKIE, REFRESH_TTL_SEC, SESSION_COOKIE,
@@ -8,8 +7,16 @@ import {
 
 const isProd = process.env.NODE_ENV === 'production';
 
+type CookieSerializeOptions = {
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'strict' | 'lax' | 'none' | boolean;
+  path?: string;
+  maxAge?: number;
+};
+
 // 🔥 Надійно конфігуруємо base для крос-доменних запитів (Render + Vercel)
-const base: FastifyCookieOptions = {
+const base: CookieSerializeOptions = {
   httpOnly: true,
   secure: true, // Завжди true для Render.com (HTTPS) та localhost (сучасні браузери вимагають secure для SameSite=None)
   sameSite: 'none', // Обов'язково для зв'язку Vercel <-> Render
@@ -17,8 +24,8 @@ const base: FastifyCookieOptions = {
 };
 
 type CookieReply = FastifyReply & {
-  setCookie: (name: string, value: string, options?: FastifyCookieOptions) => FastifyReply;
-  clearCookie: (name: string, options?: FastifyCookieOptions) => FastifyReply;
+  setCookie: (name: string, value: string, options?: CookieSerializeOptions) => FastifyReply;
+  clearCookie: (name: string, options?: CookieSerializeOptions) => FastifyReply;
 };
 
 export function setAuthCookies(res: FastifyReply, t: { accessToken: string; refreshToken: string }) {
