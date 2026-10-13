@@ -39,26 +39,26 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // 🔥 ВИПРАВЛЕНО CORS: додано всі варіації вашого Vercel домену для надійного проходження валідації
+  // 🔥 ВИПРАВЛЕНО: Надійна обробка OPTIONS запитів та валідація доменів
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [
-        'http://localhost:3000',                  // Next.js локально
-        'http://localhost:5173',                  // Vite локально
-        'https://vercel.app',   // Варіант з дефісами
-        'https://cinema_8595_delta.vercel.app',   // Варіант з підкресленнями (як у вікні браузера)
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'https://cinema-8595-delta.vercel.app'
       ];
       
-      // Додатково дозволяємо будь-які прев'ю-домени від vercel через регулярний вираз
+      // Якщо origin порожній (це буває при OPTIONS запитах або серверних утилітах)
+      // або він є у нашому білому списку, чи підпадає під системні домени Vercel
       if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app\$/.test(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`Not allowed by CORS: ${origin}`), false);
       }
     },
-    credentials: true, // Дозволяє браузеру зберігати та слати куки авторизації
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    credentials: true, // Дозволяє браузеру прикріплювати куки авторизації
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'X-XSRF-TOKEN'],
   });
 
   app.enableShutdownHooks();
