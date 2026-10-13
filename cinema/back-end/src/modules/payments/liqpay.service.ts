@@ -62,7 +62,7 @@ export class LiqPayService {
       language: 'uk',
       result_url: `${this.frontUrl}/payment/result?orderId=${params.orderId}`,
       // 🔥 ВИПРАВЛЕНО: Додано обов'язковий глобальний префікс /api/v1 для Fastify路由
-      server_url: `${this.apiPublicUrl}/api/v1/payments/liqpay/callback`,
+      server_url: `${this.apiPublicUrl}/payments/liqpay/callback`,
     };
 
     if (this.sandbox) {
