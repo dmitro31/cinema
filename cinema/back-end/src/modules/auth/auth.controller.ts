@@ -72,7 +72,6 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    // ВИПРАВЛЕНО: Для звичайного входу викликаємо стандартний метод login()
     const { user, ...tokens } = await this.auth.login(dto, metaOf(req));
 
     setAuthCookies(res, tokens);
@@ -91,8 +90,6 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    // ВИПРАВЛЕНО: Для Google-авторизації через idToken викликаємо відповідний метод,
-    // який всередині AuthService верифікує токен через google-auth-library
     const { user, ...tokens } = await this.auth.googleLogin(
       dto as unknown as Parameters<AuthService['googleLogin']>[0],
       metaOf(req),
@@ -125,8 +122,6 @@ export class AuthController {
       throw new UnauthorizedException('Google authentication failed');
     }
 
-    // Тут передається розпарсений об'єкт профілю з Passport.js стратегії.
-    // Якщо ваш метод googleLogin очікує саме такий об'єкт, то все працюватиме.
     const { user, ...tokens } = await this.auth.googleLogin(
       profile,
       metaOf(req),
@@ -146,11 +141,13 @@ export class AuthController {
   async refresh(
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
+    @Body('refreshToken') bodyToken?: string, // 🔥 РЕЗЕРВНИЙ ШЛЯХ: підстраховка для фронтенду
   ) {
-    const refreshToken = req.cookies[REFRESH_COOKIE];
+    // 🔥 ВИПРАВЛЕНО: Безпечне зчитування кук Fastify або токена з body запиту
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] || bodyToken;
 
     if (!refreshToken) {
-      throw new UnauthorizedException('No refresh token');
+      throw new UnauthorizedException('No refresh token provided');
     }
 
     try {
@@ -177,7 +174,8 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const refreshToken = req.cookies[REFRESH_COOKIE];
+    // 🔥 ВИПРАВЛЕНО: Безпечний чейнінг для Fastify-кук
+    const refreshToken = req.cookies?.[REFRESH_COOKIE];
 
     if (refreshToken) {
       await this.tokens.revoke(refreshToken);
@@ -188,10 +186,15 @@ export class AuthController {
 
   @Get('me')
   async me(@CurrentUser() jwt: JwtPayload) {
+    // Захист: якщо гвард не зміг розпарсити токен, jwt буде порожнім
+    if (!jwt || !jwt.sub) {
+      throw new UnauthorizedException('Token is missing or invalid');
+    }
+
     const user = await this.users.findById(jwt.sub);
 
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('User not found');
     }
 
     return {
