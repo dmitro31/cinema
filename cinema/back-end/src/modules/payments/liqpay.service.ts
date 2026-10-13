@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { LIQPAY_API_URL, LIQPAY_CHECKOUT_URL, LIQPAY_VERSION } from './payments.constants';
+import { LIQPAY_API_URL, LIQPAY_CHECKOUT_URL, LIQPAY_VERSION } from './payments.constants.js';
 
 @Injectable()
 export class LiqPayService {
@@ -16,8 +16,8 @@ export class LiqPayService {
   constructor(config: ConfigService) {
     this.publicKey = config.getOrThrow<string>('LIQPAY_PUBLIC_KEY');
     this.privateKey = config.getOrThrow<string>('LIQPAY_PRIVATE_KEY');
-    this.apiPublicUrl = config.getOrThrow<string>('API_PUBLIC_URL').replace(/\/+$/, '');
-    this.frontUrl = config.getOrThrow<string>('FRONT_URL').replace(/\/+$/, '');
+    this.apiPublicUrl = config.getOrThrow<string>('API_PUBLIC_URL').replace(/\/+\$/, '');
+    this.frontUrl = config.getOrThrow<string>('FRONT_URL').replace(/\/+\$/, '');
     this.currency = config.get<string>('LIQPAY_CURRENCY') ?? 'UAH';
 
     const sandboxRaw = config.get<string | boolean>('LIQPAY_SANDBOX');
@@ -61,6 +61,7 @@ export class LiqPayService {
       order_id: params.paymentId,
       language: 'uk',
       result_url: `${this.frontUrl}/payment/result?orderId=${params.orderId}`,
+      // 🔥 ВИПРАВЛЕНО: Додано обов'язковий глобальний префікс /api/v1 для Fastify路由
       server_url: `${this.apiPublicUrl}/api/v1/payments/liqpay/callback`,
     };
 
