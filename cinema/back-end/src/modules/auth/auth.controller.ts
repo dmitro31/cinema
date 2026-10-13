@@ -44,62 +44,60 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly tokens: TokensService,
     private readonly users: UsersService,
-  ) {}
+  ) { }
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
-  async register(
-    @Body() dto: RegisterDto,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) res: FastifyReply,
-  ) {
+  async register(@Body() dto: RegisterDto, @Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
     const { user, ...tokens } = await this.auth.register(dto, metaOf(req));
-
     setAuthCookies(res, tokens);
-
-    return {
-      user: publicUser(user),
-    };
+    return { user: publicUser(user), ...tokens }; // 🔥 Повертаємо токени у відповіді
   }
 
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
   @HttpCode(200)
-  async login(
-    @Body() dto: LoginDto,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) res: FastifyReply,
-  ) {
+  async login(@Body() dto: LoginDto, @Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
     const { user, ...tokens } = await this.auth.login(dto, metaOf(req));
-
     setAuthCookies(res, tokens);
-
-    return {
-      user: publicUser(user),
-    };
+    return { user: publicUser(user), ...tokens }; // 🔥 Повертаємо токени у відповіді
   }
 
   @Public()
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('google')
   @HttpCode(200)
-  async google(
-    @Body() dto: GoogleLoginDto,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) res: FastifyReply,
-  ) {
+  async google(@Body() dto: GoogleLoginDto, @Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
     const { user, ...tokens } = await this.auth.googleLogin(
       dto as unknown as Parameters<AuthService['googleLogin']>[0],
       metaOf(req),
     );
-
     setAuthCookies(res, tokens);
+    return { user: publicUser(user), ...tokens }; // 🔥 Повертаємо токени у відповіді
+  }
 
-    return {
-      user: publicUser(user),
-    };
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Post('refresh')
+  @HttpCode(200)
+  async refresh(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body('refreshToken') bodyToken?: string,
+  ) {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] || bodyToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token provided');
+    }
+
+    try {
+      const { user, ...tokens } = await this.tokens.rotate(refreshToken, metaOf(req));
+      setAuthCookies(res, tokens);
+      return { user: publicUser(user), ...tokens };
+    } catch (error) {
+      clearAuthCookies(res);
+      throw error;
+    }
   }
 
   @Public()
@@ -132,39 +130,6 @@ export class AuthController {
     return {
       user: publicUser(user),
     };
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  @Post('refresh')
-  @HttpCode(200)
-  async refresh(
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) res: FastifyReply,
-    @Body('refreshToken') bodyToken?: string, // 🔥 РЕЗЕРВНИЙ ШЛЯХ: підстраховка для фронтенду
-  ) {
-    // 🔥 ВИПРАВЛЕНО: Безпечне зчитування кук Fastify або токена з body запиту
-    const refreshToken = req.cookies?.[REFRESH_COOKIE] || bodyToken;
-
-    if (!refreshToken) {
-      throw new UnauthorizedException('No refresh token provided');
-    }
-
-    try {
-      const { user, ...tokens } = await this.tokens.rotate(
-        refreshToken,
-        metaOf(req),
-      );
-
-      setAuthCookies(res, tokens);
-
-      return {
-        user: publicUser(user),
-      };
-    } catch (error) {
-      clearAuthCookies(res);
-      throw error;
-    }
   }
 
   @Public()

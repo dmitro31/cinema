@@ -7,6 +7,7 @@ import type { FastifyRequest } from 'fastify';
 import { ACCESS_COOKIE } from '../constants/auth.constants.js';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 import type { JwtPayload } from '../types/fastify.js';
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
@@ -23,8 +24,14 @@ export class JwtAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const req = ctx.switchToHttp().getRequest<FastifyRequest>();
-    const token = (req as FastifyRequest & { cookies?: Record<string, string> }).cookies?.[ACCESS_COOKIE] ?? this.fromHeader(req);
-    if (!token) throw new UnauthorizedException('No access token');
+    
+    // 🔥 ВИПРАВЛЕНО: Спочатку шукаємо токен в заголовках Bearer (найнадійніший спосіб для Render/Vercel), 
+    // і тільки якщо там порожньо — дістаємо з кук.
+    const token = this.fromHeader(req) || (req as any).cookies?.[ACCESS_COOKIE];
+    
+    if (!token) {
+      throw new UnauthorizedException('No access token');
+    }
 
     try {
       req.user = await this.jwt.verifyAsync<JwtPayload>(token, {

@@ -18,7 +18,18 @@ export const apiClient = axios.create({
   },
 });
 
-let refreshPromise: Promise<boolean> | null = null;
+// 🔄 Перехоплювач запитів: автоматично додає Access Token з локального сховища
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('accessToken');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+let refreshPromise: Promise<string | null> | null = null;
 
 const isAuthEndpoint = (url?: string) => {
   if (!url) return false;
@@ -29,15 +40,31 @@ const isAuthEndpoint = (url?: string) => {
     url.includes('/auth/logout');
 };
 
-const refreshAccessToken = async (): Promise<boolean> => {
-  if (refreshPromise) {
-    return refreshPromise;
-  }
+// Функція оновлення токена (надсилає старий токен у тілі запиту, якщо куки заблоковані)
+const refreshAccessToken = async (): Promise<string | null> => {
+  if (refreshPromise) return refreshPromise;
+
+  const currentRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
 
   refreshPromise = axios
-    .post(`${API_URL.replace(/\/+$/, '')}/auth/refresh`, {}, { withCredentials: true })
-    .then(() => true)
-    .catch(() => false)
+    .post(
+      `${API_URL.replace(/\/+$/, '')}/auth/refresh`, 
+      { refreshToken: currentRefreshToken }, // Передаємо в Body на випадок блокування кук браузером
+      { withCredentials: true }
+    )
+    .then((res) => {
+      const { accessToken, refreshToken } = res.data;
+      if (accessToken) localStorage.setItem('accessToken', accessToken);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+      return accessToken || null;
+    })
+    .catch(() => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
+      return null;
+    })
     .finally(() => {
       refreshPromise = null;
     });
@@ -45,33 +72,33 @@ const refreshAccessToken = async (): Promise<boolean> => {
   return refreshPromise;
 };
 
+// Перехоплювач відповідей: якщо ловимо 401 — тихо оновлюємо токен
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Якщо це запит логіну/реєстрації/гугла — зберігаємо токени з відповіді
+    if (response.config.url && isAuthEndpoint(response.config.url) && response.data) {
+      const { accessToken, refreshToken } = response.data;
+      if (accessToken) localStorage.setItem('accessToken', accessToken);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
 
-    if (!originalRequest) {
-      return Promise.reject(error);
-    }
-
-    if (error.response?.status !== 401) {
-      return Promise.reject(error);
-    }
-
-    if (isAuthEndpoint(originalRequest.url)) {
-      return Promise.reject(error);
-    }
-
-    if (originalRequest._retry) {
+    if (!originalRequest || error.response?.status !== 401 || isAuthEndpoint(originalRequest.url) || originalRequest._retry) {
       return Promise.reject(error);
     }
 
     originalRequest._retry = true;
+    const newAccessToken = await refreshAccessToken();
 
-    const refreshed = await refreshAccessToken();
-
-    if (!refreshed) {
+    if (!newAccessToken) {
       return Promise.reject(error);
+    }
+
+    if (originalRequest.headers) {
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
     }
 
     return apiClient(originalRequest);
