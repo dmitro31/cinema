@@ -32,7 +32,6 @@ export class PaymentsController {
   findOne(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.payments.getPayment(user.sub, id);
   }
-
   @Public()
   @SkipThrottle()
   @Post('liqpay/callback')
@@ -40,10 +39,11 @@ export class PaymentsController {
   async callback(@Body() body: Record<string, any>) {
     const data = body?.data;
     const signature = body?.signature;
+    this.payments.handleCallback(data, signature).catch((err) => {
+      console.error('Помилка обробки LiqPay кобеку в фоні:', err);
+    });
 
-    await this.payments.handleCallback(data, signature);
-
-    // 🔥 КРИТИЧНО ВАЖЛИВО: Повертаємо порожній рядок. LiqPay не любить JSON відповіді на callback
-    return '';
+    return { status: 'success' };
   }
+
 }
