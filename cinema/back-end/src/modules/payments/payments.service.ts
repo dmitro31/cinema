@@ -16,7 +16,7 @@ type PaymentRecord = {
   id: string;
   orderId: string;
   status: string;
-  amount: unknown;
+  amount: any; // Використовуємо any для гнучкості Prisma типів (Decimal/Float)
   currency: string;
 };
 
@@ -127,13 +127,15 @@ export class PaymentsService {
   }
 
   private async settleSuccess(payment: PaymentRecord, payload: LiqPayCallbackPayload) {
-    const amountMatches = toCents(payload.amount) === toCents(payment.amount);
+    // Примусово зводимо типи до Number для точного порівняння грошей
+    const amountMatches = toCents(Number(payload.amount)) === toCents(Number(payment.amount));
     const currencyMatches = payload.currency === payment.currency;
     if (!amountMatches || !currencyMatches) {
       await this.refundPayment(payment, payload, 'Amount or currency mismatch');
       return;
     }
 
+    // 1. Спочатку викликаємо BookingService (він створює квитки в БД)
     try {
       await this.booking.confirmPayment(payment.orderId);
     } catch (error) {
@@ -144,29 +146,32 @@ export class PaymentsService {
       throw error;
     }
 
-    const claimed = await this.prisma.order.updateMany({
-      where: { id: payment.orderId, paidByPaymentId: null },
-      data: { paidByPaymentId: payment.id },
-    });
-    if (claimed.count === 0) {
-      const current = await this.prisma.order.findUnique({
-        where: { id: payment.orderId },
-        select: { paidByPaymentId: true },
-      });
-      if (current?.paidByPaymentId !== payment.id) {
-        await this.refundPayment(payment, payload, 'Order is already paid by another payment');
-        return;
-      }
-    }
 
-    await this.prisma.payment.updateMany({
-      where: { id: payment.id, status: { in: ['PENDING', 'FAILED'] } },
-      data: {
-        status: 'SUCCEEDED',
-        providerPaymentId: providerIdOf(payload),
-        providerStatus: payload.status,
-        failureReason: null,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.order.updateMany({
+        where: { id: payment.orderId, paidByPaymentId: null },
+        data: { paidByPaymentId: payment.id },
+      });
+
+      if (claimed.count === 0) {
+        const current = await tx.order.findUnique({
+          where: { id: payment.orderId },
+          select: { paidByPaymentId: true },
+        });
+        if (current?.paidByPaymentId !== payment.id) {
+          throw new ConflictException('Order is already paid by another payment');
+        }
+      }
+
+      await tx.payment.updateMany({
+        where: { id: payment.id, status: { in: ['PENDING', 'FAILED'] } },
+        data: {
+          status: 'SUCCEEDED',
+          providerPaymentId: providerIdOf(payload),
+          providerStatus: payload.status,
+          failureReason: null,
+        },
+      });
     });
   }
 
@@ -221,3 +226,4 @@ export class PaymentsService {
     }
   }
 }
+

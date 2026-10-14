@@ -69,7 +69,6 @@ export class LiqPayService {
       description: params.description,
       order_id: params.paymentId,
       language: 'uk',
-      // 🔥 ВИПРАВЛЕНО: Перенаправляємо користувача прямо на його сторінку замовлення в особистому кабінеті
       result_url: `${this.frontUrl}/orders/${params.orderId}`,
       server_url: `${this.apiPublicUrl}/payments/liqpay/callback`,
     };

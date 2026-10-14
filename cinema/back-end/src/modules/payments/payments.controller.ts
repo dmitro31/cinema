@@ -1,5 +1,5 @@
 // modules/payments/payments.controller.ts
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Logger, Param, ParseUUIDPipe, Post, UsePipes } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
@@ -10,6 +10,8 @@ import { RefundsService } from './refunds.service.js';
 
 @Controller('payments')
 export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
+
   constructor(
     private payments: PaymentsService,
     private refunds: RefundsService,
@@ -32,18 +34,21 @@ export class PaymentsController {
   findOne(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.payments.getPayment(user.sub, id);
   }
-  @Public()
+   @Public()
   @SkipThrottle()
   @Post('liqpay/callback')
   @HttpCode(200)
   async callback(@Body() body: Record<string, any>) {
     const data = body?.data;
     const signature = body?.signature;
-    this.payments.handleCallback(data, signature).catch((err) => {
-      console.error('Помилка обробки LiqPay кобеку в фоні:', err);
-    });
+    setTimeout(() => {
+      this.payments.handleCallback(data, signature).catch((err) => {
+        this.logger.error('Помилка обробки кобеку в фоні:', err);
+      });
+    }, 10);
 
     return { status: 'success' };
   }
+
 
 }
